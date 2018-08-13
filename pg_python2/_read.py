@@ -15,7 +15,7 @@ def make_postgres_read_statement(table, kv_map, keys_to_get, limit, order_by,
 
     statement = " ".join([_prefix, ", ".join(sorted(keys_to_get)), _table_string])
     if len(kv_map.keys()) > 0:
-      statement = " ".join([_prefix, ", ".join(sorted(keys_to_get)), _table_string, "WHERE", _key_string])
+        statement = " ".join([_prefix, ", ".join(sorted(keys_to_get)), _table_string, "WHERE", _key_string])
     if group_by is not None:
         statement += " GROUP BY " + group_by
     if order_by is not None:
@@ -23,8 +23,9 @@ def make_postgres_read_statement(table, kv_map, keys_to_get, limit, order_by,
     if limit is not None:
         statement += " LIMIT " + str(limit)
     if debug:
-        logging.info("Reading From Db: %s, %s" %(statement, kv_map.values()))
+        logging.info("Reading From Db: %s, %s" % (statement, kv_map.values()))
     return statement, values
+
 
 def prepare_values(all_values, keys_to_get):
     ret_val = []
@@ -35,10 +36,12 @@ def prepare_values(all_values, keys_to_get):
         row_kv = {}
         if len(row) == len(keys_to_get):
             for idx in range(0, len(row)):
-                row_kv[k[idx]] = str(row[idx])
+                try:
+                    row_kv[k[idx]] = str(row[idx])
+                except Exception as e:
+                    logging.error("Error occurred with exception: %s\n on value: %s" % (e, row[idx]))
         else:
             logging.error("Number of keys to be fetched are not correct")
             continue
         ret_val.append(row_kv)
     return ret_val
-
