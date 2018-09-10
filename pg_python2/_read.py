@@ -38,6 +38,8 @@ def prepare_values(all_values, keys_to_get):
             for idx in range(0, len(row)):
                 try:
                     row_kv[k[idx]] = str(row[idx])
+                except UnicodeEncodeError:
+                    row_kv[k[idx]] = str(row[idx].encode('utf-8'))
                 except Exception as e:
                     logging.error("Error occurred with exception: %s\n on value: %s" % (e, row[idx]))
         else:
