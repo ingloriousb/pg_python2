@@ -4,6 +4,7 @@ contains various utilities to translate dates
 import logging
 import pg_dates
 
+
 class Translate(object):
     region = None
     supported_regions = [
@@ -26,18 +27,23 @@ class Translate(object):
             self._help()
             raise Exception('Region not supported')
 
-    def get_datetime(self, text):
+    def get_datetime(self, text, **kwargs):
+        """
+        :param text:
+        :param kwargs: dictionary that supports "format" as a key and
+        value will be as per the language. Format is a list
+        :return:
+        """
         if self.region == "middle-east":
-            return pg_dates.middle_east_parsed_date(text)
+            return pg_dates.middle_east_parsed_date(text, kwargs)
         if self.region == "gregorian":
-            return pg_dates.gregorian_parsed_date(text)
+            return pg_dates.gregorian_parsed_date(text, kwargs)
         return
-
 
 if __name__ == "__main__":
     tr = Translate("middle-east")
-    tr.get_datetime("Dec. 8, 1397")
-
+    td = tr.get_datetime("1397, 8, Dec", format=["%Y", "%m", "%d"])
+    print(td)
 
 
 
