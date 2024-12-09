@@ -5,8 +5,15 @@ from ._update import make_postgres_update_statement
 from ._update import make_postgres_update_multiple_statement
 from ._delete import make_postgres_delete_statement
 import logging
+import signal
 
 db_dict = {}
+
+class TimeoutException(Exception):
+    pass
+
+def timeout_handler(signum, frame):
+    raise TimeoutException("Query timed out")
 
 
 def get_db(server="default"):
@@ -54,7 +61,7 @@ def write(table, kv_map, server="default"):
     return True
 
 def read(table, keys_to_get, kv_map, limit=None, order_by=None, order_type=None, clause="=", group_by=None,
-         join_clause=' AND ', server="default"):
+         join_clause=' AND ', server="default", timeout=None):
     """
     :param table: String
     :param keys_to_get: list of strings
@@ -70,6 +77,25 @@ def read(table, keys_to_get, kv_map, limit=None, order_by=None, order_type=None,
     command, values = make_postgres_read_statement(table, kv_map, keys_to_get,
                                                    limit, order_by, order_type, print_debug_log,
                                                    clause, group_by, join_clause)
+    if timeout and isinstance(timeout,int):
+        retries=0
+        while retries < 3:
+            retries+=1
+            signal.signal(signal.SIGALRM, timeout_handler)
+            try:
+                signal.alarm(timeout)
+                cursor.execute(command, values)
+                all_values = cursor.fetchall()
+                signal.alarm(0)
+                return all_values
+            except TimeoutException as e:
+                logging.error("Error: {%s}"% e)
+                logging.info("Making New Connection")
+            except Exception as e:
+                print("Database error: {%s}"% e)
+                return []
+            finally:
+                signal.alarm(0)
     try:
         cursor.execute(command, values)
         all_values = cursor.fetchall()
@@ -102,7 +128,7 @@ def update(table, update_kv_map, where_kv_map, clause='=', server="default"):
         return False
     return True
 
-def read_raw(command, values, server="default"):
+def read_raw(command, values ,server="default", timeout=None):
     """
     :param table: String
     :param keys_to_get: list of strings
@@ -114,6 +140,28 @@ def read_raw(command, values, server="default"):
     """
     db_obj = get_db(server)
     cursor = db_obj.get_cursor()
+    if timeout and isinstance(timeout,int):
+        retries=0
+        while retries < 3:
+            retries+=1
+            signal.signal(signal.SIGALRM, timeout_handler)
+            try:
+                signal.alarm(timeout)
+                if values not in [None, [], {}]:
+                    cursor.execute(command, values)
+                else:
+                    cursor.execute(command)
+                all_values = cursor.fetchall()
+                signal.alarm(0)
+                return all_values
+            except TimeoutException as e:
+                logging.error("Error: {%s}"% e)
+                logging.info("Making New Connection")
+            except Exception as e:
+                print("Database error: {%s}"% e)
+                return []
+            finally:
+                signal.alarm(0)
     try:
         if values not in [None, [], {}]:
             cursor.execute(command, values)
