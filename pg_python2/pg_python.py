@@ -87,10 +87,11 @@ def read(table, keys_to_get, kv_map, limit=None, order_by=None, order_type=None,
                 cursor.execute(command, values)
                 all_values = cursor.fetchall()
                 signal.alarm(0)
-                return all_values
+                return prepare_values(all_values, keys_to_get)
             except TimeoutException as e:
                 logging.error("Error: {%s}"% e)
-                logging.info("Making New Connection")
+                logging.warning("Making New Connection")
+                cursor = Db(db_obj.params).get_cursor()
             except Exception as e:
                 print("Database error: {%s}"% e)
                 return []
@@ -156,7 +157,8 @@ def read_raw(command, values ,server="default", timeout=None):
                 return all_values
             except TimeoutException as e:
                 logging.error("Error: {%s}"% e)
-                logging.info("Making New Connection")
+                logging.warning("Making New Connection")
+                cursor = Db(db_obj.params).get_cursor()
             except Exception as e:
                 print("Database error: {%s}"% e)
                 return []

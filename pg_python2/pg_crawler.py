@@ -82,7 +82,7 @@ def read(table, keys_to_get, kv_map, limit=None, order_by=None, order_type=None,
                 cursor.execute(command, values)
                 all_values = cursor.fetchall()
                 signal.alarm(0)
-                return all_values
+                return prepare_values(all_values, keys_to_get)
             except TimeoutException as e:
                 print("Error: {%s}"% e)
                 print("Making New Connection")
